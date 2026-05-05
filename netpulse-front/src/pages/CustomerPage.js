@@ -364,70 +364,108 @@ function CustomerPage() {
                 </DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2} mt={1}>
+
+                        {/* 회사명 */}
                         <Grid item xs={12}>
+                            <Typography variant="body2"
+                                        color="text.secondary"
+                                        mb={0.5}>
+                                회사명 *
+                            </Typography>
                             <TextField
                                 fullWidth
-                                label="회사명 *"
                                 name="companyName"
                                 value={form.companyName}
                                 onChange={handleChange}
+                                placeholder="회사명을 입력해 주세요"
                             />
                         </Grid>
+
+                        {/* 담당자명 */}
                         <Grid item xs={6}>
+                            <Typography variant="body2"
+                                        color="text.secondary"
+                                        mb={0.5}>
+                                담당자명
+                            </Typography>
                             <TextField
                                 fullWidth
-                                label="담당자명"
                                 name="managerName"
                                 value={form.managerName}
                                 onChange={handleChange}
+                                placeholder="담당자명 입력"
                             />
                         </Grid>
+
+                        {/* 연락처 */}
                         <Grid item xs={6}>
+                            <Typography variant="body2"
+                                        color="text.secondary"
+                                        mb={0.5}>
+                                연락처
+                            </Typography>
                             <TextField
                                 fullWidth
-                                label="연락처"
                                 name="phone"
                                 value={form.phone}
                                 onChange={handleChange}
+                                placeholder="010-0000-0000"
                             />
                         </Grid>
+
+                        {/* 주소 */}
                         <Grid item xs={12}>
+                            <Typography variant="body2"
+                                        color="text.secondary"
+                                        mb={0.5}>
+                                주소
+                            </Typography>
                             <TextField
                                 fullWidth
-                                label="주소"
                                 name="address"
                                 value={form.address}
                                 onChange={handleChange}
+                                placeholder="주소를 입력해 주세요"
                             />
                         </Grid>
+
+                        {/* 이메일 */}
                         <Grid item xs={12}>
+                            <Typography variant="body2"
+                                        color="text.secondary"
+                                        mb={0.5}>
+                                이메일
+                            </Typography>
                             <TextField
                                 fullWidth
-                                label="이메일"
                                 name="email"
                                 value={form.email}
                                 onChange={handleChange}
+                                placeholder="email@example.com"
                             />
                         </Grid>
+
+                        {/* 계약만료일 */}
                         <Grid item xs={12}>
+                            <Typography variant="body2"
+                                        color="text.secondary"
+                                        mb={0.5}>
+                                계약만료일
+                            </Typography>
                             <TextField
                                 fullWidth
-                                label="계약만료일"
                                 name="contractExpiry"
                                 type="date"
                                 value={form.contractExpiry}
                                 onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                InputProps={{
-                                    placeholder: ''
-                                }}
                                 sx={{
                                     '& input[type="date"]::-webkit-calendar-picker-indicator': {
                                         cursor: 'pointer'
                                     },
                                     '& input[type="date"]': {
                                         color: form.contractExpiry
-                                            ? 'inherit' : 'transparent'
+                                            ? 'inherit'
+                                            : 'transparent'
                                     }
                                 }}
                             />

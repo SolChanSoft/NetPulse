@@ -11,6 +11,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import RouterIcon from '@mui/icons-material/Router';
 import WarningIcon from '@mui/icons-material/Warning';
 import MenuIcon from '@mui/icons-material/Menu';
+import BuildIcon from '@mui/icons-material/Build';
 
 const drawerWidth = 240;
 
@@ -19,6 +20,7 @@ const menuItems = [
     { text: '고객사 관리', icon: <PeopleIcon />, path: '/customers' },
     { text: '장비 관리', icon: <RouterIcon />, path: '/devices' },
     { text: '장애 이력', icon: <WarningIcon />, path: '/incidents' },
+    { text: '유지보수 이력', icon: <BuildIcon />, path: '/maintenance' },     
 ];
 
 function Layout({ children }) {
