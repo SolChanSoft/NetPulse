@@ -20,12 +20,15 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-h2console'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+    // Jackson (JSON 처리)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
     // SNMP4J 라이브러리
     implementation 'org.snmp4j:snmp4j:3.7.7'
     // HTTP 통신용 (카카오 알림톡)

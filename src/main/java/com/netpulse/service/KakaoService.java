@@ -1,15 +1,19 @@
 package com.netpulse.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -19,13 +23,8 @@ public class KakaoService {
     @Value("${kakao.api.key}")
     private String kakaoApiKey;
 
-    @Value("${kakao.oauth.redirect-uri}")
-    private String kakaoRedirectUri;
-
-    @Value("${kakao.oauth.client-secret:}")
-    private String kakaoClientSecret;
-
     private final WebClient.Builder webClientBuilder;
+    private final ObjectMapper objectMapper;
 
     // ─────────────────────────────────────────
     // 카카오 액세스 토큰 발급
@@ -39,26 +38,17 @@ public class KakaoService {
                 new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("client_id", kakaoApiKey);
-        params.add("redirect_uri", kakaoRedirectUri);
+        params.add("redirect_uri",
+                "http://localhost:8080/kakao/callback");
         params.add("code", authCode);
-
-        if (kakaoClientSecret != null && !kakaoClientSecret.isBlank()) {
-            params.add("client_secret", kakaoClientSecret);
-        }
 
         try {
             String response = webClient.post()
                     .uri("/oauth/token")
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .contentType(
+                            MediaType.APPLICATION_FORM_URLENCODED)
                     .body(BodyInserters.fromFormData(params))
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, clientResponse ->
-                            clientResponse.bodyToMono(String.class)
-                                    .flatMap(errorBody -> {
-                                        log.error("카카오 토큰 발급 응답 오류: {}", errorBody);
-                                        return Mono.error(new RuntimeException(errorBody));
-                                    })
-                    )
                     .bodyToMono(String.class)
                     .block();
 
@@ -66,13 +56,14 @@ public class KakaoService {
             return response;
 
         } catch (Exception e) {
-            log.error("카카오 토큰 발급 실패: {}", e.getMessage());
+            log.error("카카오 토큰 발급 실패: {}",
+                    e.getMessage());
             return null;
         }
     }
 
     // ─────────────────────────────────────────
-    // 카카오 나에게 메시지 전송 (테스트용)
+    // 카카오 나에게 메시지 전송
     // ─────────────────────────────────────────
     public boolean sendMessageToMe(String accessToken,
                                    String message) {
@@ -80,31 +71,40 @@ public class KakaoService {
                 .baseUrl("https://kapi.kakao.com")
                 .build();
 
-        // 메시지 템플릿 (텍스트형)
-        String template = """
-            {
-                "object_type": "text",
-                "text": "%s",
-                "link": {
-                    "web_url": "http://localhost:8080",
-                    "mobile_web_url": "http://localhost:8080"
-                }
-            }
-            """.formatted(message);
-
         try {
-            webClient.post()
+            // ObjectMapper 로 JSON 안전하게 생성
+            Map<String, Object> link = new HashMap<>();
+            link.put("web_url", "http://localhost:8080");
+            link.put("mobile_web_url",
+                    "http://localhost:8080");
+
+            Map<String, Object> template = new HashMap<>();
+            template.put("object_type", "text");
+            template.put("text", message);
+            template.put("link", link);
+
+            // JSON 직렬화
+            String templateJson =
+                    objectMapper.writeValueAsString(template);
+
+            log.info("전송 템플릿: {}", templateJson);
+
+            MultiValueMap<String, String> formData =
+                    new LinkedMultiValueMap<>();
+            formData.add("template_object", templateJson);
+
+            String response = webClient.post()
                     .uri("/v2/api/talk/memo/default/send")
                     .header("Authorization",
                             "Bearer " + accessToken)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(BodyInserters.fromFormData(
-                            "template_object", template))
+                    .contentType(
+                            MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(BodyInserters.fromFormData(formData))
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
 
-            log.info("카카오 메시지 전송 성공");
+            log.info("카카오 메시지 전송 성공: {}", response);
             return true;
 
         } catch (Exception e) {
@@ -121,23 +121,17 @@ public class KakaoService {
                                      String deviceName,
                                      String ipAddress,
                                      String description) {
-        String message = """
-                🚨 [NetPulse 장애 알림]
-                
-                장비명 : %s
-                IP주소 : %s
-                내용   : %s
-                발생시간: %s
-                
-                즉시 확인이 필요합니다!
-                """.formatted(
-                deviceName,
-                ipAddress,
-                description,
-                java.time.LocalDateTime.now()
-                        .format(java.time.format.DateTimeFormatter
-                                .ofPattern("yyyy-MM-dd HH:mm:ss"))
-        );
+        String now = LocalDateTime.now()
+                .format(DateTimeFormatter
+                        .ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        // 줄바꿈 없이 한줄로 작성
+        String message =
+                "[NetPulse 장애알림] " +
+                        "장비명:" + deviceName + " / " +
+                        "IP:" + ipAddress + " / " +
+                        "내용:" + description + " / " +
+                        "발생:" + now;
 
         return sendMessageToMe(accessToken, message);
     }
@@ -148,23 +142,12 @@ public class KakaoService {
     public boolean sendExpiryAlert(String accessToken,
                                    String companyName,
                                    String expiryDate) {
-        String message = """
-                ⚠️ [NetPulse 계약만료 알림]
-                
-                고객사  : %s
-                만료일  : %s
-                
-                계약 갱신을 확인해 주세요!
-                """.formatted(companyName, expiryDate);
+        String message =
+                "[NetPulse 계약만료알림] " +
+                        "고객사:" + companyName + " / " +
+                        "만료일:" + expiryDate +
+                        " / 계약갱신을 확인해주세요!";
 
         return sendMessageToMe(accessToken, message);
-    }
-
-    public String getKakaoClientSecret() {
-        return kakaoClientSecret;
-    }
-
-    public void setKakaoClientSecret(String kakaoClientSecret) {
-        this.kakaoClientSecret = kakaoClientSecret;
     }
 }
