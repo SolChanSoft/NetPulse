@@ -36,7 +36,12 @@ server:
 # 카카오 알림톡 설정
 kakao:
   api:
-    key: c2b8babb895e0a7e7ef889b81ad92360
+    key: ${KAKAO_REST_API_KEY}
+  oauth:
+    redirect-uri: http://localhost:8080/kakao/callback
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+  message:
+    url: https://kapi.kakao.com/v2/api/talk/memo/default/send
 
 # 로그 설정
 logging:
