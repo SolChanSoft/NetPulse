@@ -26,6 +26,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+    // SNMP4J 라이브러리
+    implementation 'org.snmp4j:snmp4j:3.7.7'
+    // HTTP 통신용 (카카오 알림톡)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    // 스케줄러 (주기적 모니터링)
+    implementation 'org.springframework.boot:spring-boot-starter-quartz'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
