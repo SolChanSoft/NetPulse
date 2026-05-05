@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: netpulse
+
+#  server:
+#    user: admin
+#    password: netpulse1234
+
+  # MariaDB 설정
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3306/netpulse?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+    username: netpulse
+    password: netpulse
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: true
+    show-sql: true
+
+  # Thymeleaf 설정
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+# 서버 포트
+server:
+  port: 8080
+
+# 카카오 알림톡 설정
+kakao:
+  api:
+    key: c2b8babb895e0a7e7ef889b81ad92360
+
+# 로그 설정
+logging:
+  level:
+    com.netpulse: DEBUG
+    org.hibernate.SQL: DEBUG
