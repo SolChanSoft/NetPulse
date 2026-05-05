@@ -18,6 +18,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import DeviceApi from '../api/deviceApi';
 import CustomerApi from '../api/customerApi';
 import SnmpApi from '../api/snmpApi';
+import PingApi from '../api/pingApi';
 
 // 초기 폼 데이터
 const initForm = {
@@ -227,12 +228,13 @@ function DevicePage() {
     };
 
     // SNMP Ping 테스트
+    // handlePing 함수 수정
     const handlePing = async (deviceId) => {
-        setPingLoading({ ...pingLoading,
-            [deviceId]: true });
+        setPingLoading({
+            ...pingLoading, [deviceId]: true });
         try {
-            const res = await SnmpApi.ping(deviceId);
-            if (res.data) {
+            const res = await PingApi.pingDevice(deviceId);
+            if (res.data.pingStatus) {
                 showSnackbar(
                     '✅ Ping 성공! 장비 정상입니다.',
                     'success');
@@ -245,8 +247,8 @@ function DevicePage() {
         } catch (error) {
             showSnackbar('Ping 테스트 실패!', 'error');
         } finally {
-            setPingLoading({ ...pingLoading,
-                [deviceId]: false });
+            setPingLoading({
+                ...pingLoading, [deviceId]: false });
         }
     };
 

@@ -1,5 +1,6 @@
 package com.netpulse.service;
 
+import com.netpulse.entity.Device;
 import com.netpulse.entity.IncidentLog;
 import com.netpulse.entity.IncidentLog.IncidentStatus;
 import com.netpulse.repository.IncidentLogRepository;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,6 +21,7 @@ public class IncidentLogService {
 
     // 장애 전체 조회
     public List<IncidentLog> getAllIncidents() {
+
         return incidentLogRepository.findAll();
     }
 
@@ -29,6 +32,7 @@ public class IncidentLogService {
 
     // 미해결 장애 조회
     public List<IncidentLog> getOpenIncidents() {
+
         return incidentLogRepository.findByStatus(IncidentStatus.OPEN);
     }
 
@@ -36,6 +40,18 @@ public class IncidentLogService {
     @Transactional
     public IncidentLog createIncident(IncidentLog incident) {
         log.info("장애 등록: 장비ID {}", incident.getDevice().getId());
+        return incidentLogRepository.save(incident);
+    }
+
+    // 장애 등록
+    @Transactional
+    public IncidentLog createIncident(Device device, String description) {
+        IncidentLog incident = IncidentLog.builder()
+                .device(device)
+                .description(description)
+                .build();
+
+        log.info("장애 등록: 장비ID {}", device.getId());
         return incidentLogRepository.save(incident);
     }
 

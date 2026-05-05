@@ -18,6 +18,7 @@ public class MonitoringScheduler {
     private final DeviceService deviceService;
     private final SnmpService snmpService;
     private final KakaoService kakaoService;
+    private final PingService pingService;
 
     // 카카오 액세스 토큰 (임시)
     // 나중에 DB 저장으로 변경 예정
@@ -26,11 +27,10 @@ public class MonitoringScheduler {
     // ─────────────────────────────────────────
     // 5분마다 전체 장비 모니터링
     // ─────────────────────────────────────────
-    @Scheduled(fixedDelay = 300000) // 5분 = 300,000ms
+    @Scheduled(fixedDelay = 300000)
     public void monitorAllDevices() {
         log.info("=== 자동 모니터링 시작 ===");
 
-        // 전체 장비 조회
         List<Device> devices =
                 deviceService.getAllDevices();
 
@@ -39,12 +39,21 @@ public class MonitoringScheduler {
             return;
         }
 
-        log.info("모니터링 대상 장비: {}대", devices.size());
+        log.info("모니터링 대상 장비: {}대",
+                devices.size());
 
         for (Device device : devices) {
             try {
-                // 장비별 모니터링 수집
-                snmpService.collectDeviceStatus(device);
+                // SNMP Community 있으면 SNMP 수집
+                // 없으면 Ping 체크
+                if (device.getSnmpCommunity() != null
+                        && !device.getSnmpCommunity()
+                        .isEmpty()) {
+                    snmpService.collectDeviceStatus(
+                            device);
+                } else {
+                    pingService.pingDevice(device);
+                }
 
                 // 장애 장비 알림 전송
                 if (device.getStatus() ==
@@ -58,7 +67,6 @@ public class MonitoringScheduler {
                         e.getMessage());
             }
         }
-
         log.info("=== 자동 모니터링 완료 ===");
     }
 
