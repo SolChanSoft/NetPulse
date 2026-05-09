@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-    Box, Drawer, AppBar, Toolbar,
-    Typography, List, ListItem,
-    ListItemIcon, ListItemText,
-    IconButton, Divider
-} from '@mui/material';
+import { Box, Drawer, AppBar, Toolbar, Typography, List, ListItem,
+    ListItemIcon, ListItemText, IconButton, Divider } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import RouterIcon from '@mui/icons-material/Router';
 import WarningIcon from '@mui/icons-material/Warning';
 import MenuIcon from '@mui/icons-material/Menu';
 import BuildIcon from '@mui/icons-material/Build';
+import VideocamIcon from '@mui/icons-material/Videocam';
+
 
 const drawerWidth = 240;
 
@@ -20,7 +18,13 @@ const menuItems = [
     { text: '고객사 관리', icon: <PeopleIcon />, path: '/customers' },
     { text: '장비 관리', icon: <RouterIcon />, path: '/devices' },
     { text: '장애 이력', icon: <WarningIcon />, path: '/incidents' },
-    { text: '유지보수 이력', icon: <BuildIcon />, path: '/maintenance' },     
+    { text: '유지보수 이력', icon: <BuildIcon />, path: '/maintenance' },
+    { text: '대시보드', icon: <DashboardIcon />, path: '/' },
+    { text: '고객사 관리', icon: <PeopleIcon />, path: '/customers' },
+    { text: '장비 관리', icon: <RouterIcon />, path: '/devices' },
+    { text: 'IP 카메라', icon: <VideocamIcon />, path: '/cameras' },
+    { text: '장애 이력', icon: <WarningIcon />, path: '/incidents' },
+    { text: '유지보수 이력', icon: <BuildIcon />, path: '/maintenance' },
 ];
 
 function Layout({ children }) {
@@ -31,9 +35,7 @@ function Layout({ children }) {
     const drawer = (
         <Box>
             <Toolbar>
-                <Typography variant="h6"
-                            fontWeight="bold"
-                            color="primary">
+                <Typography variant="h6" fontWeight="bold" color="primary">
                     🌐 NetPulse
                 </Typography>
             </Toolbar>

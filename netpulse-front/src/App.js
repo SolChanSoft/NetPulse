@@ -8,6 +8,7 @@ import DevicePage from './pages/DevicePage';
 import IncidentPage from './pages/IncidentPage';
 import './App.css';
 import MaintenancePage from './pages/MaintenancePage';
+import CameraPage from './pages/CameraPage';
 
 // MUI 테마 설정
 const theme = createTheme({
@@ -37,6 +38,8 @@ function App() {
                      element={<IncidentPage />} />
               <Route path="/maintenance"
                      element={<MaintenancePage />} />
+              <Route path="/cameras"
+                     element={<CameraPage />} />
             </Routes>
           </Layout>
         </BrowserRouter>

@@ -9,20 +9,24 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
 import java.util.List;
 
+
 @Slf4j
 @Component
 @EnableScheduling
 @RequiredArgsConstructor
+
 public class MonitoringScheduler {
 
     private final DeviceService deviceService;
     private final SnmpService snmpService;
     private final KakaoService kakaoService;
     private final PingService pingService;
+    private final OnvifService onvifService;
 
     // 카카오 액세스 토큰 (임시)
     // 나중에 DB 저장으로 변경 예정
     private String kakaoAccessToken = "";
+
 
     // ─────────────────────────────────────────
     // 5분마다 전체 장비 모니터링
@@ -117,4 +121,13 @@ public class MonitoringScheduler {
         this.kakaoAccessToken = token;
         log.info("카카오 토큰 업데이트 완료");
     }
+
+    // 기존 monitorAllDevices 메서드 아래에 추가
+    @Scheduled(fixedDelay = 300000)
+    public void monitorAllCameras() {
+        log.info("=== 카메라 모니터링 시작 ===");
+        onvifService.checkAllCameras();
+        log.info("=== 카메라 모니터링 완료 ===");
+    }
+
 }
