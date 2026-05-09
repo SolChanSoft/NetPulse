@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Typography, Button, Card,
-    CardContent, Table, TableBody,
-    TableCell, TableContainer, TableHead,
-    TableRow, Paper, Chip, IconButton,
-    Dialog, DialogTitle, DialogContent,
-    DialogActions, TextField, Grid,
-    InputAdornment, CircularProgress,
-    Snackbar, Alert
+    Box, Typography, Button, Card, CardContent, Table, TableBody,
+    TableCell, TableContainer, TableHead, TableRow, Paper, Chip, IconButton,
+    Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid,
+    InputAdornment, CircularProgress, Snackbar, Alert, Tooltip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import CustomerApi from '../api/customerApi';
+// import 추가
+import ReportApi from '../api/reportApi';
+import DownloadIcon from '@mui/icons-material/Download';
 
 // 초기 폼 데이터
 const initForm = {
@@ -159,6 +158,33 @@ function CustomerPage() {
         setSnackbar({ open: true, message, severity });
     };
 
+    // handleReport 함수 추가
+    const handleReport = async (customerId) => {
+        try {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+
+            const res = await ReportApi.downloadMonthly(
+                customerId, year, month);
+
+            // PDF 다운로드
+            const url = window.URL.createObjectURL(
+                new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download',
+                `NetPulse_${year}년${month}월_리포트.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            showSnackbar('리포트 다운로드 완료!', 'success');
+        } catch (error) {
+            showSnackbar('리포트 생성 실패!', 'error');
+        }
+    };
+
     // 계약만료 상태 확인
     const getExpiryStatus = (expiryDate) => {
         if (!expiryDate) return null;
@@ -178,6 +204,7 @@ function CustomerPage() {
         return <Chip label="정상"
                      color="success" size="small" />;
     };
+
 
     return (
         <Box>
@@ -291,8 +318,7 @@ function CustomerPage() {
                                                 colSpan={8}
                                                 align="center"
                                                 sx={{ py: 5 }}>
-                                                등록된 고객사가
-                                                없습니다.
+                                                등록된 고객사가 없습니다.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -328,6 +354,18 @@ function CustomerPage() {
                                                     </TableCell>
                                                     <TableCell
                                                         align="center">
+                                                        {/* 리포트 버튼 ← 여기 추가! */}
+                                                        <Tooltip title="월간 리포트">
+                                                            <IconButton
+                                                                color="success"
+                                                                size="small"
+                                                                onClick={() =>
+                                                                    handleReport(customer.id)}>
+                                                                <DownloadIcon />
+                                                            </IconButton>
+                                                        </Tooltip>
+
+                                                        {/* 수정 버튼 */}
                                                         <IconButton
                                                             color="primary"
                                                             size="small"
@@ -336,6 +374,8 @@ function CustomerPage() {
                                                                     customer)}>
                                                             <EditIcon />
                                                         </IconButton>
+
+                                                        {/* 삭제 버튼 */}
                                                         <IconButton
                                                             color="error"
                                                             size="small"
@@ -517,6 +557,8 @@ function CustomerPage() {
             </Snackbar>
         </Box>
     );
+
+
 }
 
 export default CustomerPage;

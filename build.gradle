@@ -27,6 +27,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+    // PDF 생성
+    implementation 'com.itextpdf:itext7-core:7.2.5'
+    implementation 'com.itextpdf:html2pdf:4.0.5'
+    implementation 'com.itextpdf:font-asian:7.2.5' // ← 한글 폰트 추가
+    // 이메일 발송 (선택)
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
     // ONVIF 연동
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'

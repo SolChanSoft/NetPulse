@@ -2,16 +2,12 @@ spring:
   application:
     name: netpulse
 
-#  server:
-#    user: admin
-#    password: netpulse1234
-
   # MariaDB 설정
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
     url: jdbc:mariadb://localhost:3306/netpulse?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
     username: netpulse
-    password: netpulse
+    password: no1Wjdqh!!
 
   # JPA 설정
   jpa:
@@ -21,11 +17,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: true
-    show-sql: true
+    show-sql: false
 
   # Thymeleaf 설정
   thymeleaf:
-    cache: false
+    cache: true
     prefix: classpath:/templates/
     suffix: .html
 
@@ -46,5 +42,4 @@ kakao:
 # 로그 설정
 logging:
   level:
-    com.netpulse: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.netpulse: INFO
