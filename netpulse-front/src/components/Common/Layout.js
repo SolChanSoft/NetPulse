@@ -9,6 +9,8 @@ import WarningIcon from '@mui/icons-material/Warning';
 import MenuIcon from '@mui/icons-material/Menu';
 import BuildIcon from '@mui/icons-material/Build';
 import VideocamIcon from '@mui/icons-material/Videocam';
+import LogoutIcon from '@mui/icons-material/Logout';
+import Button from '@mui/material/Button';
 
 
 const drawerWidth = 240;
@@ -27,7 +29,7 @@ const menuItems = [
     { text: '유지보수 이력', icon: <BuildIcon />, path: '/maintenance' },
 ];
 
-function Layout({ children }) {
+function Layout({ children, onLogout }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,6 +40,18 @@ function Layout({ children }) {
                 <Typography variant="h6" fontWeight="bold" color="primary">
                     🌐 NetPulse
                 </Typography>
+                <Toolbar>
+                    <Typography variant="h6"
+                                noWrap sx={{ flexGrow: 1 }}>
+                        NetPulse - 네트워크 모니터링 시스템
+                    </Typography>
+                    <Button
+                        color="inherit"
+                        startIcon={<LogoutIcon />}
+                        onClick={onLogout}>
+                        로그아웃
+                    </Button>
+                </Toolbar>
             </Toolbar>
             <Divider />
             <List>

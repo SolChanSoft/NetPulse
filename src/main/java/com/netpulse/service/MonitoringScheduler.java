@@ -208,16 +208,25 @@ public class MonitoringScheduler {
                                         year, month, pdf);
                             }
 
-                            if (emailSent
-                                    && kakaoAccessToken != null
-                                    && !kakaoAccessToken.isEmpty()) {
+                            if (emailSent) {
                                 String message =
                                         "[NetPulse 월간리포트]\n" +
                                                 customer.getCompanyName() +
                                                 "\n" + year + "년 " + month +
                                                 "월 리포트가 이메일로 발송되었습니다!";
-                                kakaoService.sendMessageToMe(
-                                        kakaoAccessToken, message);
+
+                                boolean kakaoSent =
+                                        kakaoService.sendMessageToMe(
+                                                kakaoService.getValidAccessToken(),
+                                                message);
+
+                                if (!kakaoSent) {
+                                    log.warn("월간 리포트 카카오 알림 실패: {}",
+                                            customer.getCompanyName());
+                                }
+                            } else {
+                                log.debug("유효한 카카오 토큰 없음 - 월간 리포트 카카오 알림 생략: {}",
+                                        customer.getCompanyName());
                             }
 
                             log.info("리포트 발송 완료: {}",

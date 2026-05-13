@@ -44,7 +44,7 @@ netpulse:
     admin: ${MAIL_ADMIN:${MAIL_USERNAME:}}
 
   service:
-    url: ${NETPULSE_SERVICE_URL:http://168.107.19.179:8080}
+    url: ${NETPULSE_SERVICE_URL:https://www.netpulse.co.kr}
 
 server:
   address: 0.0.0.0
@@ -61,8 +61,8 @@ kakao:
     refresh-token: ${KAKAO_REFRESH_TOKEN:}
     access-token-url: ${KAKAO_ACCESS_TOKEN_URL:https://kauth.kakao.com/oauth/token}
     refresh-token-url: ${KAKAO_REFRESH_TOKEN_URL:https://kauth.kakao.com/oauth/token}
-    message:
-      url: ${KAKAO_MESSAGE_URL:https://kapi.kakao.com/v2/api/talk/memo/default/send}
+  message:
+    url: ${KAKAO_MESSAGE_URL:https://kapi.kakao.com/v2/api/talk/memo/default/send}
 
 logging:
   level:

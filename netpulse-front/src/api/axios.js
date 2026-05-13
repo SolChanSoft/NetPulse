@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: 'https://www.netpulse.co.kr',
+    baseURL: process.env.REACT_APP_API_BASE_URL || '',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json'
@@ -29,3 +29,5 @@ instance.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+export default instance;

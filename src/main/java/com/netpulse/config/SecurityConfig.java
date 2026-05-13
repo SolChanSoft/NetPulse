@@ -12,13 +12,14 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http) throws Exception {
         http
-                // CSRF 완전 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
-                // 모든 요청 허용 (개발용)
                 .authorizeHttpRequests(auth -> auth
+                        // 모든 API 허용
+                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/kakao/**").permitAll()
                         .anyRequest().permitAll()
                 );
         return http.build();

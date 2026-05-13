@@ -47,12 +47,14 @@ public class SnmpService {
     public boolean pingDevice(String ipAddress,
                               String community,
                               int port) {
+        Snmp snmp = null;
+
         try {
             TransportMapping<?> transport =
                     new DefaultUdpTransportMapping();
             transport.listen();
 
-            Snmp snmp = new Snmp(transport);
+            snmp = new Snmp(transport);
 
             CommunityTarget target = new CommunityTarget();
             target.setCommunity(
@@ -61,8 +63,8 @@ public class SnmpService {
                     GenericAddress.parse(
                             "udp:" + ipAddress + "/" + port));
             target.setVersion(SnmpConstants.version2c);
-            target.setTimeout(3000);  // 3초 타임아웃
-            target.setRetries(2);     // 2회 재시도
+            target.setTimeout(3000);
+            target.setRetries(2);
 
             PDU pdu = new PDU();
             pdu.add(new VariableBinding(
@@ -71,7 +73,6 @@ public class SnmpService {
 
             ResponseEvent<?> response =
                     snmp.send(pdu, target);
-            snmp.close();
 
             if (response != null &&
                     response.getResponse() != null) {
@@ -86,6 +87,15 @@ public class SnmpService {
             log.error("SNMP Ping 오류: {} - {}",
                     ipAddress, e.getMessage());
             return false;
+        } finally {
+            if (snmp != null) {
+                try {
+                    snmp.close();
+                } catch (IOException e) {
+                    log.warn("SNMP 리소스 종료 실패: {} - {}",
+                            ipAddress, e.getMessage());
+                }
+            }
         }
     }
 
@@ -96,12 +106,14 @@ public class SnmpService {
                                String community,
                                int port,
                                String oid) {
+        Snmp snmp = null;
+
         try {
             TransportMapping<?> transport =
                     new DefaultUdpTransportMapping();
             transport.listen();
 
-            Snmp snmp = new Snmp(transport);
+            snmp = new Snmp(transport);
 
             CommunityTarget target = new CommunityTarget();
             target.setCommunity(
@@ -119,10 +131,10 @@ public class SnmpService {
 
             ResponseEvent<?> response =
                     snmp.send(pdu, target);
-            snmp.close();
 
             if (response != null &&
-                    response.getResponse() != null) {
+                    response.getResponse() != null &&
+                    response.getResponse().size() > 0) {
                 return response.getResponse()
                         .get(0)
                         .getVariable()
@@ -132,7 +144,17 @@ public class SnmpService {
         } catch (IOException e) {
             log.error("SNMP GET 오류: {} - {}",
                     ipAddress, e.getMessage());
+        } finally {
+            if (snmp != null) {
+                try {
+                    snmp.close();
+                } catch (IOException e) {
+                    log.warn("SNMP 리소스 종료 실패: {} - {}",
+                            ipAddress, e.getMessage());
+                }
+            }
         }
+
         return null;
     }
 
@@ -143,7 +165,29 @@ public class SnmpService {
     public MonitoringLog collectDeviceStatus(Device device) {
         String ip        = device.getIpAddress();
         String community = device.getSnmpCommunity();
-        int    port      = device.getSnmpPort();
+        int    port      = device.getSnmpPort() != null
+                ? device.getSnmpPort()
+                : 161;
+
+        if (port <= 0 || port > 65535) {
+            log.warn("SNMP 포트 값 오류 - 기본 포트 사용: {} / {}",
+                    device.getDeviceName(), port);
+            port = 161;
+        }
+
+        if (ip == null || ip.isBlank()) {
+            log.warn("SNMP 수집 생략 - IP 주소 없음: {}",
+                    device.getDeviceName());
+            updateDeviceStatus(device, false, null);
+            return null;
+        }
+
+        if (community == null || community.isBlank()) {
+            log.warn("SNMP 수집 생략 - Community 없음: {}",
+                    device.getDeviceName());
+            updateDeviceStatus(device, false, null);
+            return null;
+        }
 
         log.info("모니터링 수집 시작: {} ({})",
                 device.getDeviceName(), ip);
@@ -223,6 +267,7 @@ public class SnmpService {
         } else {
             // 정상
             newStatus = DeviceStatus.NORMAL;
+            resolveOpenIncidentIfNeeded(device);
         }
 
         deviceService.updateDeviceStatus(
@@ -248,11 +293,30 @@ public class SnmpService {
                     .description(description)
                     .status(IncidentLog.IncidentStatus.OPEN)
                     .occurredAt(LocalDateTime.now())
-                    .build();;
+                    .build();
 
             incidentLogRepository.save(incident);
             log.warn("장애 등록: {} - {}",
                     device.getDeviceName(), description);
         }
+    }
+
+    @Transactional
+    public void resolveOpenIncidentIfNeeded(Device device) {
+        incidentLogRepository
+                .findFirstByDeviceIdAndStatusOrderByOccurredAtDesc(
+                        device.getId(),
+                        IncidentLog.IncidentStatus.OPEN)
+                .ifPresent(incident -> {
+                    incident.setStatus(
+                            IncidentLog.IncidentStatus.RESOLVED);
+                    incident.setResolvedAt(LocalDateTime.now());
+                    incident.setResolution("모니터링 정상 복구 확인");
+
+                    incidentLogRepository.save(incident);
+
+                    log.info("장애 자동 해결 처리: {}",
+                            device.getDeviceName());
+                });
     }
 }

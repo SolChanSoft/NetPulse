@@ -120,17 +120,26 @@ function CustomerPage() {
             showSnackbar('회사명을 입력해 주세요!', 'warning');
             return;
         }
+
+        const payload = {
+            ...form,
+            contractExpiry: form.contractExpiry
+                ? form.contractExpiry
+                : null
+        };
+
         try {
             if (editMode) {
-                await CustomerApi.update(selectedId, form);
+                await CustomerApi.update(selectedId, payload);
                 showSnackbar('고객사 수정 완료!', 'success');
             } else {
-                await CustomerApi.create(form);
+                await CustomerApi.create(payload);
                 showSnackbar('고객사 등록 완료!', 'success');
             }
             handleCloseDialog();
             fetchCustomers();
         } catch (error) {
+            console.error('고객사 저장 실패:', error);
             showSnackbar('저장 실패!', 'error');
         }
     };
