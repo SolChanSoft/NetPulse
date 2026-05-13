@@ -5,6 +5,7 @@ import com.netpulse.entity.IncidentLog.IncidentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface IncidentLogRepository
@@ -21,4 +22,9 @@ public interface IncidentLogRepository
 
     // 고객사별 장애 이력
     List<IncidentLog> findByDeviceCustomerId(Long customerId);
+
+    Optional<IncidentLog> findFirstByDeviceIdAndStatusOrderByOccurredAtDesc(
+            Long deviceId,
+            IncidentLog.IncidentStatus status
+    );
 }

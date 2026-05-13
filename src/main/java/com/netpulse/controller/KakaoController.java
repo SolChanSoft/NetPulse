@@ -1,6 +1,6 @@
 package com.netpulse.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netpulse.entity.KakaoToken;
 import com.netpulse.service.KakaoService;
 import com.netpulse.service.MonitoringScheduler;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +36,7 @@ public class KakaoController {
                 .queryParam("client_id", kakaoApiKey)
                 .queryParam("redirect_uri", kakaoRedirectUri)
                 .queryParam("response_type", "code")
+                .queryParam("scope", "talk_message")
                 .build()
                 .toUriString();
 
@@ -68,33 +69,37 @@ public class KakaoController {
                     .body(Map.of("error", "인증 코드가 없습니다"));
         }
 
-        log.info("카카오 인증 코드: {}", code);
+        log.info("카카오 인증 코드 수신 완료");
 
         String tokenResponse =
                 kakaoService.getAccessToken(code);
 
+        if (tokenResponse == null || tokenResponse.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error",
+                            "카카오 토큰 발급 실패"));
+        }
+
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> tokenMap =
-                    mapper.readValue(tokenResponse, Map.class);
+            KakaoToken savedToken =
+                    kakaoService.saveTokenResponse(tokenResponse);
 
-            String accessToken =
-                    (String) tokenMap.get("access_token");
-
-            log.info("발급된 액세스 토큰: {}", accessToken);
+            log.info("카카오 토큰 발급 및 DB 저장 완료");
 
             Map<String, String> result = new HashMap<>();
-            result.put("access_token", accessToken);
+            result.put("message", "카카오 토큰 발급 및 저장 완료");
+            result.put("accessTokenExpiresAt",
+                    String.valueOf(savedToken.getAccessTokenExpiresAt()));
+            result.put("refreshTokenExpiresAt",
+                    String.valueOf(savedToken.getRefreshTokenExpiresAt()));
 
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("토큰 파싱 오류: {}", e.getMessage());
+            log.error("카카오 토큰 저장 오류: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of(
-                            "error", "토큰 파싱 실패",
-                            "raw", tokenResponse != null
-                                    ? tokenResponse : "null"
+                            "error", "카카오 토큰 저장 실패"
                     ));
         }
     }
@@ -102,8 +107,13 @@ public class KakaoController {
     // 테스트 메시지 전송
     @PostMapping("/send")
     public ResponseEntity<Boolean> sendMessage(
-            @RequestParam String accessToken,
             @RequestParam String message) {
+        String accessToken = kakaoService.getValidAccessToken();
+
+        if (accessToken == null || accessToken.isBlank()) {
+            return ResponseEntity.badRequest().body(false);
+        }
+
         boolean result =
                 kakaoService.sendMessageToMe(
                         accessToken, message);
@@ -113,17 +123,30 @@ public class KakaoController {
     // 장애 알림 테스트
     @PostMapping("/alert/incident")
     public ResponseEntity<Boolean> sendIncidentAlert(
-            @RequestParam String accessToken,
             @RequestParam String deviceName,
             @RequestParam String ipAddress,
             @RequestParam String description) {
         boolean result =
                 kakaoService.sendIncidentAlert(
-                        accessToken,
                         deviceName,
                         ipAddress,
                         description);
         return ResponseEntity.ok(result);
+    }
+
+    // 카카오 토큰 갱신
+    @PostMapping("/token/refresh")
+    public ResponseEntity<?> refreshToken() {
+        String accessToken = kakaoService.refreshAccessToken();
+
+        if (accessToken == null || accessToken.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error",
+                            "카카오 토큰 갱신 실패"));
+        }
+
+        return ResponseEntity.ok(
+                Map.of("message", "카카오 토큰 갱신 완료"));
     }
 
     // 카카오 토큰 업데이트

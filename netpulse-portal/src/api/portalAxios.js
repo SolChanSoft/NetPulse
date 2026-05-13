@@ -8,24 +8,20 @@ const instance = axios.create({
     }
 });
 
-// 요청 인터셉터
 instance.interceptors.request.use(
     config => {
-        console.log('API 요청:', config.url);
+        console.log('포털 API 요청:', config.url);
         return config;
     },
+    error => Promise.reject(error)
+);
+
+instance.interceptors.response.use(
+    response => response,
     error => {
+        console.error('포털 API 오류:', error);
         return Promise.reject(error);
     }
 );
 
-// 응답 인터셉터
-instance.interceptors.response.use(
-    response => {
-        return response;
-    },
-    error => {
-        console.error('API 오류:', error);
-        return Promise.reject(error);
-    }
-);
+export default instance;

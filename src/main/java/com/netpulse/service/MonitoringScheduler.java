@@ -2,23 +2,29 @@ package com.netpulse.service;
 
 import com.netpulse.entity.Device;
 import com.netpulse.entity.Device.DeviceStatus;
+import com.netpulse.entity.IncidentLog;
 import com.netpulse.repository.CustomerRepository;
+import com.netpulse.repository.IncidentLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
 @Slf4j
 @Component
-@EnableScheduling
 @RequiredArgsConstructor
 
 public class MonitoringScheduler {
+
+    private static final Duration KAKAO_ALERT_INTERVAL =
+            Duration.ofHours(1);
 
     private final DeviceService deviceService;
     private final SnmpService snmpService;
@@ -27,14 +33,15 @@ public class MonitoringScheduler {
     private final OnvifService onvifService;
     private final ReportService reportService;
     private final CustomerRepository customerRepository;
+    private final EmailService emailService;
+    private final IncidentLogRepository incidentLogRepository;
 
-    // 카카오 액세스 토큰 (임시)
-    // 나중에 DB 저장으로 변경 예정
-    private String kakaoAccessToken = "";
+    @Value("${kakao.token.access-token:}")
+    private String kakaoAccessToken;
 
 
-    // ─────────────────────────────────────────
-    // 5분마다 전체 장비 모니터링
+// ─────────────────────────────────────────
+// 5분마다 전체 장비 모니터링
     // ─────────────────────────────────────────
     @Scheduled(fixedDelay = 300000)
     public void monitorAllDevices() {
@@ -64,17 +71,20 @@ public class MonitoringScheduler {
                     pingService.pingDevice(device);
                 }
 
+                Device refreshedDevice =
+                        deviceService.getDevice(device.getId());
+
                 // 장애 장비 알림 전송
-                if (device.getStatus() ==
+                if (refreshedDevice.getStatus() ==
                         DeviceStatus.ERROR) {
-                    sendAlertIfNeeded(device);
+                    sendAlertIfNeeded(refreshedDevice);
                 }
 
             } catch (Exception e) {
                 log.error("모니터링 오류 - 장비: {} - {}",
                         device.getDeviceName(),
                         e.getMessage());
-            }
+                }
         }
         log.info("=== 자동 모니터링 완료 ===");
     }
@@ -87,8 +97,13 @@ public class MonitoringScheduler {
         log.info("=== 계약만료 체크 시작 ===");
 
         // 30일 이내 만료 고객사 조회
-        List<Device> devices =
-                deviceService.getAllDevices();
+        customerRepository.findAll()
+                .forEach(customer -> {
+                    // TODO: Customer 엔티티에 계약 만료일 필드가 있다면
+                    // 30일 이내 만료 여부를 체크하고 알림 발송 처리
+                    log.debug("계약만료 체크 대상 고객사: {}",
+                            customer.getCompanyName());
+                });
 
         log.info("계약만료 체크 완료");
     }
@@ -97,20 +112,33 @@ public class MonitoringScheduler {
     // 장애 알림 전송
     // ─────────────────────────────────────────
     private void sendAlertIfNeeded(Device device) {
-        if (kakaoAccessToken == null ||
-                kakaoAccessToken.isEmpty()) {
-            log.warn("카카오 토큰 없음 - 알림 전송 불가");
+        IncidentLog incidentLog = incidentLogRepository
+                .findFirstByDeviceIdAndStatusOrderByOccurredAtDesc(
+                        device.getId(),
+                        IncidentLog.IncidentStatus.OPEN)
+                .orElse(null);
+
+        if (incidentLog == null) {
+            log.debug("미해결 장애 이력 없음 - 카카오 알림 생략: {}",
+                    device.getDeviceName());
+            return;
+        }
+
+        if (!shouldSendKakaoAlert(incidentLog)) {
+            log.info("카카오 장애 알림 중복 방지 - 생략: {}",
+                    device.getDeviceName());
             return;
         }
 
         boolean result = kakaoService.sendIncidentAlert(
-                kakaoAccessToken,
                 device.getDeviceName(),
                 device.getIpAddress(),
-                "장비 응답 없음"
-        );
+                incidentLog.getDescription());
 
         if (result) {
+            incidentLog.setLastKakaoAlertAt(LocalDateTime.now());
+            incidentLogRepository.save(incidentLog);
+
             log.info("장애 알림 전송 성공: {}",
                     device.getDeviceName());
         } else {
@@ -119,10 +147,26 @@ public class MonitoringScheduler {
         }
     }
 
-    // ─────────────────────────────────────────
-    // 카카오 토큰 업데이트 (API 로 호출)
-    // ─────────────────────────────────────────
+    private boolean shouldSendKakaoAlert(IncidentLog incidentLog) {
+        LocalDateTime lastAlertAt =
+                incidentLog.getLastKakaoAlertAt();
+
+        if (lastAlertAt == null) {
+            return true;
+        }
+
+        LocalDateTime nextAlertTime =
+                lastAlertAt.plus(KAKAO_ALERT_INTERVAL);
+
+        return LocalDateTime.now().isAfter(nextAlertTime);
+    }
+
     public void updateKakaoToken(String token) {
+        if (token == null || token.isBlank()) {
+            log.warn("빈 카카오 토큰은 업데이트하지 않습니다.");
+            return;
+        }
+
         this.kakaoAccessToken = token;
         log.info("카카오 토큰 업데이트 완료");
     }
@@ -136,47 +180,55 @@ public class MonitoringScheduler {
     }
 
     // 매월 1일 오전 9시 자동 리포트 발송
+    // 기존 sendMonthlyReports 메서드 수정
     @Scheduled(cron = "0 0 9 1 * *")
     public void sendMonthlyReports() {
         log.info("=== 월간 리포트 자동 발송 시작 ===");
 
-        // 지난달 년/월 계산
         LocalDate lastMonth = LocalDate.now()
                 .minusMonths(1);
         int year = lastMonth.getYear();
         int month = lastMonth.getMonthValue();
 
-        // 전체 고객사 리포트 생성
-        customerRepository.findAll().forEach(customer -> {
-            try {
-                byte[] pdf = reportService
-                        .generateMonthlyReport(
-                                customer.getId(), year, month);
+        customerRepository.findAll()
+                .forEach(customer -> {
+                    try {
+                        // PDF 생성
+                        byte[] pdf = reportService
+                                .generateMonthlyReport(
+                                        customer.getId(), year, month);
 
-                // 카카오톡으로 알림 발송
-                if (kakaoAccessToken != null
-                        && !kakaoAccessToken.isEmpty()) {
-                    String message =
-                            "[NetPulse 월간리포트]\n" +
-                                    customer.getCompanyName() +
-                                    " 고객사\n" +
-                                    year + "년 " + month +
-                                    "월 리포트가 생성되었습니다.\n" +
-                                    "관리자 포털에서 확인해 주세요!";
+                            boolean emailSent = false;
 
-                    kakaoService.sendMessageToMe(
-                            kakaoAccessToken, message);
-                }
+                            if (customer.getEmail() != null
+                                    && !customer.getEmail().isEmpty()) {
+                                emailSent = emailService.sendReportEmail(
+                                        customer.getEmail(),
+                                        customer.getCompanyName(),
+                                        year, month, pdf);
+                            }
 
-                log.info("리포트 발송 완료: {}",
-                        customer.getCompanyName());
+                            if (emailSent
+                                    && kakaoAccessToken != null
+                                    && !kakaoAccessToken.isEmpty()) {
+                                String message =
+                                        "[NetPulse 월간리포트]\n" +
+                                                customer.getCompanyName() +
+                                                "\n" + year + "년 " + month +
+                                                "월 리포트가 이메일로 발송되었습니다!";
+                                kakaoService.sendMessageToMe(
+                                        kakaoAccessToken, message);
+                            }
 
-            } catch (Exception e) {
-                log.error("리포트 발송 실패: {} - {}",
-                        customer.getCompanyName(),
-                        e.getMessage());
-            }
-        });
+                            log.info("리포트 발송 완료: {}",
+                                    customer.getCompanyName());
+
+                    } catch (Exception e) {
+                        log.error("리포트 발송 실패: {} - {}",
+                                customer.getCompanyName(),
+                                e.getMessage());
+                    }
+                });
 
         log.info("=== 월간 리포트 자동 발송 완료 ===");
     }

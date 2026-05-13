@@ -23,6 +23,7 @@ public class IncidentLog {
 
     private LocalDateTime occurredAt;  // 발생시간
     private LocalDateTime resolvedAt;  // 복구시간
+    private LocalDateTime lastKakaoAlertAt; // 미해결 알람
 
     @Column(length = 500)
     private String description;        // 장애내용
@@ -45,4 +46,6 @@ public class IncidentLog {
         INPROGRESS, // 처리중
         RESOLVED    // 해결
     }
+
+
 }
